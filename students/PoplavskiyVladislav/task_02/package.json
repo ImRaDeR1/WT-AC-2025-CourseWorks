@@ -1,0 +1,17 @@
+{
+  "name": "course-work-variant-42",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:server",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:server": "npm run dev -w apps/server",
+    "build": "npm run build -ws",
+    "lint": "npm run lint -ws"
+  },
+  "dependencies": {
+    "course-work-variant-42": "file:"
+  }
+}

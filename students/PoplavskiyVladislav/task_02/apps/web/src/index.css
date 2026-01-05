@@ -1,0 +1,203 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  accent-color: Highlight;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: Canvas;
+  color: CanvasText;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: LinkText;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.2rem;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  border-radius: 10px;
+  border: 1px solid GrayText;
+  padding: 0.55rem 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: ButtonFace;
+  color: ButtonText;
+  cursor: pointer;
+}
+
+button:not(:disabled):hover {
+  filter: brightness(0.98);
+}
+
+button.primary {
+  background: Highlight;
+  color: HighlightText;
+  border-color: Highlight;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid GrayText;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  background: Field;
+  color: FieldText;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+/* Layout helpers */
+.container {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 0 16px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.card {
+  border: 1px solid GrayText;
+  border-radius: 14px;
+  padding: 16px;
+  background: Canvas;
+}
+
+.notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid Highlight;
+  background: Canvas;
+}
+
+.muted {
+  opacity: 0.75;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  padding: 0.45rem 0.75rem;
+}
+
+.tabs button[aria-pressed="true"] {
+  background: Highlight;
+  color: HighlightText;
+  border-color: Highlight;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.list > li {
+  border: 1px solid GrayText;
+  border-radius: 14px;
+  padding: 12px;
+  background: Canvas;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid GrayText;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.grow2 {
+  flex: 2;
+  min-width: 220px;
+}

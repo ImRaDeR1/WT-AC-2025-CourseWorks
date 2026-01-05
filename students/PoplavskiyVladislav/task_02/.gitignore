@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# build
+/dist/
+/build/
+
+# logs
+*.log
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/

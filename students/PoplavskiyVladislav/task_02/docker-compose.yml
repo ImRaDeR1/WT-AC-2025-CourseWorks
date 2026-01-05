@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: study_groups
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./apps/server
+    environment:
+      SERVER_PORT: 3001
+      CORS_ORIGIN: http://localhost:5173
+      JWT_ACCESS_SECRET: change_me
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/study_groups?schema=public
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
