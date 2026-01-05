@@ -167,5 +167,6 @@ INSERT INTO statuses (name, description, color, "order", is_final) VALUES
     ('in_review', 'Рассматривается', '#2196F3', 2, FALSE),
     ('approved', 'Одобрена', '#4CAF50', 3, TRUE),
     ('rejected', 'Отклонена', '#F44336', 4, TRUE),
-    ('needs_revision', 'Требует доработки', '#FF9800', 5, FALSE);
+    ('needs_revision', 'Требует доработки', '#FF9800', 5, FALSE),
+    ('withdrawn', 'Отозвана', '#795548', 6, TRUE);
 ```
