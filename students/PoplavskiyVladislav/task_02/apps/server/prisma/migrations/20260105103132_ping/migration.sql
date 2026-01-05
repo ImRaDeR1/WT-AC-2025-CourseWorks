@@ -1,3 +1,5 @@
+-- sql-lint-disable my-sql-invalid-create-option
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('admin', 'user');
 
