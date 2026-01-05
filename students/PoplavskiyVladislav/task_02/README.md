@@ -29,17 +29,17 @@ MVP по варианту 42:
 
 Из корня `task_02`:
 
-1) Установка зависимостей
+1 Установка зависимостей
 
 `npm install`
 
-2) Запуск backend
+2 Запуск backend
 
 `npm run dev:server`
 
 - Healthcheck: `GET http://localhost:3001/health`
 
-3) Запуск frontend (в отдельном терминале)
+3 Запуск frontend (в отдельном терминале)
 
 `npm run dev:web`
 
@@ -58,18 +58,15 @@ MVP по варианту 42:
 `docker compose run --rm api npm run db:seed`
 
 - Дефолтные учётки из seed:
-	- `admin@example.com` / `password123`
-	- `user@example.com` / `password123`
-	- Демо-группа: `00000000-0000-0000-0000-000000000042`
+- `admin@example.com` / `password123`
+- `user@example.com` / `password123`
+- Демо-группа: `00000000-0000-0000-0000-000000000042`
 
 ## База данных (PostgreSQL) + Prisma
 
-
 `docker compose up -d db`
 - Применить миграции (когда DB поднята):
- 
  Переменные окружения для backend лежат в `apps/server/.env` (см. пример `apps/server/.env.example`).
- 
  Засидить демо-данные:
  `npm run db:seed -w apps/server`
 
