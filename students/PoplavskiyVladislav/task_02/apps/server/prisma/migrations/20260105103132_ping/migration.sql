@@ -1,16 +1,19 @@
--- sql-lint-disable my-sql-invalid-create-option
-
 -- CreateEnum
+-- sql-lint-disable-next-line my-sql-invalid-create-option
 CREATE TYPE "UserRole" AS ENUM ('admin', 'user');
 
 -- CreateEnum
+-- sql-lint-disable-next-line my-sql-invalid-create-option
 CREATE TYPE "MembershipRole" AS ENUM ('owner', 'member');
 
 -- CreateEnum
+-- sql-lint-disable-next-line my-sql-invalid-create-option
 CREATE TYPE "MaterialType" AS ENUM ('link', 'file', 'note');
 
 -- CreateEnum
+-- sql-lint-disable-next-line my-sql-invalid-create-option
 CREATE TYPE "TaskStatus" AS ENUM ('todo', 'in_progress', 'done');
+
 
 -- CreateTable
 CREATE TABLE "users" (
