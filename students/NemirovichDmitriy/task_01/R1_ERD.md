@@ -21,6 +21,8 @@ erDiagram
         email varchar
         password_hash varchar
         role varchar
+        created_at datetime
+        updated_at datetime
     }
     TRIP {
         id int PK
@@ -31,6 +33,7 @@ erDiagram
         budget float
         owner_id int FK
         created_at datetime
+        updated_at datetime
     }
     STOP {
         id int PK
@@ -42,6 +45,8 @@ erDiagram
         arrival_date datetime
         departure_date datetime
         order int
+        created_at datetime
+        updated_at datetime
     }
     NOTE {
         id int PK
@@ -49,6 +54,7 @@ erDiagram
         author_id int FK
         content text
         created_at datetime
+        updated_at datetime
     }
     EXPENSE {
         id int PK
@@ -58,12 +64,14 @@ erDiagram
         category varchar
         description text
         date date
+        created_at datetime
+        updated_at datetime
     }
     TRIP_PARTICIPANT {
         id int PK
         trip_id int FK
         user_id int FK
-        role varchar
+        joined_at datetime
     }
 ```
 
@@ -86,7 +94,9 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('admin','user'))
+    role TEXT NOT NULL CHECK (role IN ('admin','user')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE trips (
@@ -97,7 +107,8 @@ CREATE TABLE trips (
     end_date DATE,
     budget DOUBLE PRECISION,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE stops (
@@ -109,7 +120,9 @@ CREATE TABLE stops (
     longitude DOUBLE PRECISION,
     arrival_date TIMESTAMP WITH TIME ZONE,
     departure_date TIMESTAMP WITH TIME ZONE,
-    "order" INTEGER NOT NULL
+    "order" INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE notes (
@@ -117,7 +130,8 @@ CREATE TABLE notes (
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE expenses (
@@ -127,14 +141,27 @@ CREATE TABLE expenses (
     amount DOUBLE PRECISION NOT NULL,
     category TEXT,
     description TEXT,
-    date DATE NOT NULL
+    date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE trip_participants (
     id UUID PRIMARY KEY,
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('owner','participant')),
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     UNIQUE(trip_id, user_id)
 );
+
+-- Индексы для производительности
+CREATE INDEX idx_trips_owner ON trips(owner_id);
+CREATE INDEX idx_stops_trip ON stops(trip_id);
+CREATE INDEX idx_stops_order ON stops(trip_id, "order");
+CREATE INDEX idx_notes_trip ON notes(trip_id);
+CREATE INDEX idx_notes_author ON notes(author_id);
+CREATE INDEX idx_expenses_trip ON expenses(trip_id);
+CREATE INDEX idx_expenses_author ON expenses(author_id);
+CREATE INDEX idx_trip_participants_trip ON trip_participants(trip_id);
+CREATE INDEX idx_trip_participants_user ON trip_participants(user_id);
 ```

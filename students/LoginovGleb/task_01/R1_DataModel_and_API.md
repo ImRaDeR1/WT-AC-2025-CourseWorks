@@ -225,21 +225,38 @@ Applications
 
   - Response: `200 {id, status, comment}`
 
+- POST `/applications/{id}/withdraw` — отозвать заявку (владелец)
+
+  - Условие: заявка не в финальном статусе (is_final = false)
+  - Меняет статус на `withdrawn`
+  - Response: `200 {id, status: "withdrawn"}`
+  - Ошибка 403: если заявка уже в финальном статусе
+
 Attachments
 
 - GET `/attachments?applicationId=` — список вложений заявки
+
+  - Авторизация: владелец заявки, Moderator или Admin
 
 - POST `/attachments` — загрузка файла
 
   - Content-Type: multipart/form-data
   - Fields: applicationId, file
+  - Авторизация: только владелец заявки (заявка в статусе draft)
+  - Ограничения: max 10 файлов на заявку, max 10 МБ на файл, общий размер до 50 МБ
   - Response: `201 {id, filename, fileSize, mimeType}`
+  - Ошибка 400: превышен лимит файлов или размера
 
 - GET `/attachments/{id}` — скачивание файла
 
+  - Авторизация: владелец заявки, Moderator или Admin
   - Response: binary file
+  - Ошибка 403: нет доступа к вложению
 
-- DELETE `/attachments/{id}` — удаление вложения (владелец или admin)
+- DELETE `/attachments/{id}` — удаление вложения
+
+  - Авторизация: владелец заявки (заявка в статусе draft) или Admin
+  - Ошибка 403: нет прав на удаление
 
 History (аудит изменений статуса)
 
