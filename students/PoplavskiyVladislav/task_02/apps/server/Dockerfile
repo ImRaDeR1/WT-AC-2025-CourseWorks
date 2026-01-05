@@ -2,8 +2,8 @@ FROM node:22-bookworm-slim AS deps
 
 WORKDIR /app
 
-# hadolint ignore=DL3008
 # Prisma generate needs OpenSSL present to pick the correct engine.
+# hadolint ignore=DL3008
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     openssl \
@@ -29,8 +29,8 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# hadolint ignore=DL3008
 # Prisma engines require OpenSSL to be available in the runtime image.
+# hadolint ignore=DL3008
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     openssl \
