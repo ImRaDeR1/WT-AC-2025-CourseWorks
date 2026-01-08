@@ -3,6 +3,7 @@ FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 
 # Prisma generate needs OpenSSL present to pick the correct engine.
+# hadolint ignore=DL3008
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends openssl ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
@@ -18,8 +19,7 @@ FROM deps AS build
 COPY tsconfig.json ./
 COPY src ./src
 
-RUN npm run db:generate
-RUN npm run build
+RUN npm run db:generate && npm run build
 
 
 FROM node:22-bookworm-slim AS runner
@@ -28,6 +28,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Prisma engines require OpenSSL to be available in the runtime image.
+# hadolint ignore=DL3008
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends openssl ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*

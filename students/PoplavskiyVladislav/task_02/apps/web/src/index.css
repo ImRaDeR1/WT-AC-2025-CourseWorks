@@ -1,10 +1,10 @@
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   accent-color: Highlight;
@@ -62,10 +62,6 @@ button {
   cursor: pointer;
 }
 
-button:not(:disabled):hover {
-  filter: brightness(0.98);
-}
-
 button.primary {
   background: Highlight;
   color: HighlightText;
@@ -75,14 +71,6 @@ button.primary {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid Highlight;
-  outline-offset: 2px;
 }
 
 input,
@@ -96,6 +84,14 @@ select {
   font: inherit;
   background: Field;
   color: FieldText;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
 }
 
 label {
@@ -164,6 +160,10 @@ label {
   background: Highlight;
   color: HighlightText;
   border-color: Highlight;
+}
+
+button:not(:disabled):hover {
+  filter: brightness(0.98);
 }
 
 .list {
