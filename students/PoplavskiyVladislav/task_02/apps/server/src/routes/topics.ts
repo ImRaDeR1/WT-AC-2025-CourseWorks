@@ -30,7 +30,7 @@ topicsRouter.get(
 
       const topics = await prisma.topic.findMany({
         where: { groupId },
-        select: { id: true, title: true, description: true, order: true },
+        select: { id: true, title: true, description: true, order: true, isDone: true, doneAt: true },
         orderBy: [{ order: "asc" }, { title: "asc" }],
         take: limit ?? 50,
         skip: offset ?? 0,
@@ -54,7 +54,7 @@ topicsRouter.post(
 
       const created = await prisma.topic.create({
         data: { groupId, title, description, order },
-        select: { id: true, title: true, description: true, order: true },
+        select: { id: true, title: true, description: true, order: true, isDone: true, doneAt: true },
       });
 
       res.status(201).json(ok(created));
@@ -69,6 +69,7 @@ const updateTopicSchema = z
     title: z.string().min(3).max(200).optional(),
     description: z.string().max(5000).nullable().optional(),
     order: z.number().int().min(0).max(100000).nullable().optional(),
+    isDone: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "At least one field is required" });
 
@@ -88,6 +89,12 @@ topicsRouter.patch(
           ...(patch.title !== undefined ? { title: patch.title } : {}),
           ...(patch.description !== undefined ? { description: patch.description } : {}),
           ...(patch.order !== undefined ? { order: patch.order } : {}),
+          ...(patch.isDone !== undefined
+            ? {
+                isDone: patch.isDone,
+                doneAt: patch.isDone ? new Date() : null,
+              }
+            : {}),
         },
       });
 
@@ -97,7 +104,7 @@ topicsRouter.patch(
 
       const updated = await prisma.topic.findFirst({
         where: { id: topicId, groupId },
-        select: { id: true, title: true, description: true, order: true },
+        select: { id: true, title: true, description: true, order: true, isDone: true, doneAt: true },
       });
 
       res.status(200).json(ok(updated));

@@ -227,6 +227,25 @@ export const GroupPage: React.FC = () => {
     }
   };
 
+  const patchTopicDone = async (topicId: string, isDone: boolean) => {
+    if (!token || !groupId) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const updated = await apiFetch<Topic>(`/groups/${groupId}/topics/${topicId}`, {
+        method: "PATCH",
+        token,
+        body: { isDone },
+      });
+      setTopics((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (e: unknown) {
+      if (e instanceof ApiClientError) setError(e.message);
+      else setError("Failed to update topic");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const patchMeeting = async (
     meetingId: string,
     patch: { startsAt: string; durationMinutes: number; place: string | null; link: string | null; notes: string | null }
@@ -245,6 +264,48 @@ export const GroupPage: React.FC = () => {
     } catch (e: unknown) {
       if (e instanceof ApiClientError) setError(e.message);
       else setError("Failed to update meeting");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const downloadCalendar = async () => {
+    if (!token || !groupId) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const baseUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001").replace(
+        /\/$/,
+        ""
+      );
+
+      const res = await fetch(`${baseUrl}/groups/${groupId}/calendar.ics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text) as { status: "error"; error: { message: string } };
+          throw new ApiClientError("http_error", json.error.message);
+        } catch {
+          throw new ApiClientError("http_error", `Failed to download calendar (${res.status})`);
+        }
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeTitle = (group?.title ?? "study-group").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+      a.download = `${safeTitle}-${groupId}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      if (e instanceof ApiClientError) setError(e.message);
+      else setError("Failed to download calendar");
     } finally {
       setIsLoading(false);
     }
@@ -526,6 +587,12 @@ export const GroupPage: React.FC = () => {
       {tab === "topics" && group?.myRole && (
         <section className="card stack" style={{ marginTop: 16 }}>
           <h2>Topics</h2>
+          <div className="inline">
+            <span className="muted">
+              Progress: {topics.filter((t) => t.isDone).length}/{topics.length}
+              {topics.length ? ` (${Math.round((topics.filter((t) => t.isDone).length / topics.length) * 100)}%)` : ""}
+            </span>
+          </div>
           {isOwner ? <CreateOne label="New topic" onCreate={createTopic} /> : null}
           <ul className="list">
             {topics.map((t) => (
@@ -574,6 +641,17 @@ export const GroupPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="inline">
+                    {isOwner ? (
+                      <label className="inline" style={{ fontWeight: 600 }}>
+                        <input
+                          type="checkbox"
+                          checked={t.isDone}
+                          disabled={isLoading}
+                          onChange={(e) => patchTopicDone(t.id, e.target.checked)}
+                        />
+                        done
+                      </label>
+                    ) : null}
                     <span>{t.title}</span>
                     {isOwner ? (
                       <>
@@ -605,7 +683,12 @@ export const GroupPage: React.FC = () => {
 
       {tab === "meetings" && group?.myRole && (
         <section className="card stack" style={{ marginTop: 16 }}>
-          <h2>Meetings</h2>
+          <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ margin: 0 }}>Meetings</h2>
+            <button disabled={isLoading} onClick={downloadCalendar}>
+              Download calendar (.ics)
+            </button>
+          </div>
           {isOwner ? <CreateMeeting onCreate={createMeeting} /> : null}
           <ul className="list">
             {meetings.map((m) => (

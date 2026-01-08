@@ -8,6 +8,113 @@ import { requireGroupMember, requireGroupOwner } from "../middlewares/requireGro
 
 export const meetingsRouter = Router();
 
+const calendarQuerySchema = z.object({
+  alarmMinutes: z.coerce.number().int().min(0).max(7 * 24 * 60).optional(),
+});
+
+const icsEscape = (value: string) =>
+  value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,");
+
+const formatIcsUtc = (d: Date) => {
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(d.getUTCMinutes()).padStart(2, "0");
+  const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}T${hh}${mi}${ss}Z`;
+};
+
+const addMinutes = (d: Date, minutes: number) => new Date(d.getTime() + minutes * 60 * 1000);
+
+meetingsRouter.get(
+  "/groups/:groupId/calendar.ics",
+  requireAuth,
+  requireGroupMember(),
+  async (req, res, next) => {
+    try {
+      const groupId = req.params.groupId;
+      const { alarmMinutes } = calendarQuerySchema.parse(req.query);
+
+      const group = await prisma.studyGroup.findFirst({ where: { id: groupId }, select: { title: true } });
+      if (!group) {
+        throw new HttpError(404, "not_found", "Group not found");
+      }
+
+      const meetings = await prisma.meeting.findMany({
+        where: { groupId },
+        select: {
+          id: true,
+          startsAt: true,
+          durationMinutes: true,
+          place: true,
+          link: true,
+          notes: true,
+          topic: { select: { title: true } },
+        },
+        orderBy: { startsAt: "asc" },
+        take: 500,
+      });
+
+      const prodId = "-//Study Groups//Calendar Export//EN";
+      const now = new Date();
+      const safeTitle = group.title.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+      const filename = `${safeTitle || "study-group"}-${groupId}.ics`;
+
+      const lines: string[] = [];
+      lines.push("BEGIN:VCALENDAR");
+      lines.push("VERSION:2.0");
+      lines.push(`PRODID:${prodId}`);
+      lines.push("CALSCALE:GREGORIAN");
+      lines.push("METHOD:PUBLISH");
+      lines.push(`X-WR-CALNAME:${icsEscape(group.title)}`);
+      lines.push("X-WR-TIMEZONE:UTC");
+
+      for (const m of meetings) {
+        const dtStart = new Date(m.startsAt);
+        const dtEnd = addMinutes(dtStart, m.durationMinutes);
+        const summary = m.topic?.title ? `${m.topic.title}` : "Meeting";
+        const descriptionParts = [m.notes?.trim(), m.link?.trim()].filter(Boolean) as string[];
+        const description = descriptionParts.length ? descriptionParts.join("\n") : undefined;
+        const alarm = alarmMinutes ?? 30;
+
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${m.id}@${groupId}`);
+        lines.push(`DTSTAMP:${formatIcsUtc(now)}`);
+        lines.push(`DTSTART:${formatIcsUtc(dtStart)}`);
+        lines.push(`DTEND:${formatIcsUtc(dtEnd)}`);
+        lines.push(`SUMMARY:${icsEscape(summary)}`);
+        if (m.place) lines.push(`LOCATION:${icsEscape(m.place)}`);
+        if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
+        if (m.link) lines.push(`URL:${icsEscape(m.link)}`);
+
+        if (alarm > 0) {
+          lines.push("BEGIN:VALARM");
+          lines.push(`TRIGGER:-PT${alarm}M`);
+          lines.push("ACTION:DISPLAY");
+          lines.push(`DESCRIPTION:${icsEscape(summary)}`);
+          lines.push("END:VALARM");
+        }
+
+        lines.push("END:VEVENT");
+      }
+
+      lines.push("END:VCALENDAR");
+
+      res.status(200);
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
+      res.send(lines.join("\r\n"));
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
   offset: z.coerce.number().int().min(0).max(100000).optional(),

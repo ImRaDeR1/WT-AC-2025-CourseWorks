@@ -1,9 +1,11 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
 
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFound } from "./middlewares/notFound";
+import { openApiSpec } from "./openapi";
 import { apiRouter } from "./routes";
 
 export const createApp = () => {
@@ -17,6 +19,9 @@ export const createApp = () => {
     })
   );
   app.use(express.json());
+
+  app.get("/openapi.json", (_req, res) => res.status(200).json(openApiSpec));
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
   app.use(apiRouter);
 

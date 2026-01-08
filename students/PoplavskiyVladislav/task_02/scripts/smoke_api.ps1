@@ -1,95 +1,128 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = "Stop"
 
-$root = Split-Path -Parent $PSScriptRoot
-$serverDir = Join-Path $root 'apps\server'
-$compose = Join-Path $root 'docker-compose.yml'
+$Root = Split-Path -Parent $PSScriptRoot
+$ApiBase = $env:API_BASE
+if ([string]::IsNullOrWhiteSpace($ApiBase)) { $ApiBase = "http://localhost:3001" }
 
-Write-Output "[smoke] root=$root"
+function Invoke-Api {
+  param(
+    [Parameter(Mandatory=$true)][string]$Method,
+    [Parameter(Mandatory=$true)][string]$Path,
+    [Parameter(Mandatory=$false)][hashtable]$Headers,
+    [Parameter(Mandatory=$false)]$Body
+  )
 
-# Ensure DB is up
-if (Test-Path $compose) {
-  docker compose -f $compose up -d | Out-Host
+  $uri = "$ApiBase$Path"
+  $params = @{
+    Method = $Method
+    Uri = $uri
+    Headers = $Headers
+    TimeoutSec = 20
+  }
+
+  if ($null -ne $Body) {
+    $params.ContentType = "application/json"
+    $params.Body = ($Body | ConvertTo-Json -Depth 10)
+  }
+
+  $res = Invoke-RestMethod @params
+
+  if ($null -eq $res) { return $null }
+  if ($res.status -eq "ok") { return $res.data }
+  if ($res.status -eq "error") {
+    $msg = $res.error.message
+    if ([string]::IsNullOrWhiteSpace($msg)) { $msg = "API error" }
+    throw $msg
+  }
+
+  return $res
 }
 
-# Ensure env files exist
-$serverEnv = Join-Path $serverDir '.env'
-$serverEnvExample = Join-Path $serverDir '.env.example'
-if (!(Test-Path $serverEnv) -and (Test-Path $serverEnvExample)) {
-  Copy-Item $serverEnvExample $serverEnv
-}
+Write-Host "[smoke] root: $Root"
+Write-Host "[smoke] api:  $ApiBase"
 
-# Ensure prisma client + schema are ready
-npm --prefix $serverDir run db:generate | Out-Host
-npm --prefix $serverDir run db:migrate | Out-Host
-npm --prefix $serverDir run db:seed | Out-Host
+Write-Host "[smoke] starting db (docker compose up -d db)"
+& docker compose -f (Join-Path $Root "docker-compose.yml") up -d db | Out-Host
 
-# Stop existing listener (if any)
-$pid3001 = (Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
-if ($pid3001) {
-  Stop-Process -Id $pid3001 -Force
-  Start-Sleep -Milliseconds 200
-}
-
-# Build + start server (detached)
-npm --prefix $serverDir run build | Out-Host
-$proc = Start-Process -WorkingDirectory $serverDir -FilePath 'node' -ArgumentList 'dist/index.js' -PassThru
-Write-Output "[smoke] server_pid=$($proc.Id)"
+$serverStartedHere = $false
+$serverProc = $null
 
 try {
-  $base = 'http://localhost:3001'
+  try {
+    Invoke-Api -Method "GET" -Path "/health" | Out-Null
+    Write-Host "[smoke] api already running"
+  } catch {
+    Write-Host "[smoke] migrate"
+    & npm --prefix $Root run db:migrate --workspace=server | Out-Host
 
-  $ok = $false
-  for ($i = 0; $i -lt 30; $i++) {
-    try {
-      $h = Invoke-RestMethod -Method GET -Uri "$base/health" -TimeoutSec 2
-      if ($h.status -eq 'ok') { $ok = $true; break }
-    } catch {
-      Start-Sleep -Milliseconds 300
-    }
+    Write-Host "[smoke] seed"
+    & npm --prefix $Root run db:seed --workspace=server | Out-Host
+
+    Write-Host "[smoke] api not responding, building & starting"
+    & npm --prefix $Root run build --workspace=server | Out-Host
+
+    $serverStartedHere = $true
+    $serverProc = Start-Process -FilePath "node" -ArgumentList "apps/server/dist/index.js" -WorkingDirectory $Root -PassThru -NoNewWindow
+
+    Start-Sleep -Seconds 2
+    Invoke-Api -Method "GET" -Path "/health" | Out-Null
+    Write-Host "[smoke] api started"
   }
-  if (-not $ok) { throw 'Server did not become healthy on :3001' }
 
-  $health = Invoke-RestMethod -Method GET -Uri "$base/health"
-  Write-Output "[smoke] health=$($health.status)"
+  Write-Host "[smoke] openapi"
+  $openapi = Invoke-RestMethod -Method "GET" -Uri "$ApiBase/openapi.json" -TimeoutSec 20
+  if ($null -eq $openapi.openapi) { throw "OpenAPI missing 'openapi' field" }
 
-  # Login (seeded)
-  $loginBody = @{ email = 'user@example.com'; password = 'password123' } | ConvertTo-Json
-  $login = Invoke-RestMethod -Method POST -Uri "$base/auth/login" -ContentType 'application/json' -Body $loginBody
-  Write-Output "[smoke] login=$($login.status)"
+  Write-Host "[smoke] swagger ui"
+  $docs = Invoke-WebRequest -Method "GET" -Uri "$ApiBase/docs" -TimeoutSec 20
+  if ($docs.StatusCode -ne 200) { throw "Swagger UI returned $($docs.StatusCode)" }
 
-  $token = $login.data.accessToken
-  if (-not $token) { throw 'No accessToken returned from /auth/login' }
+  Write-Host "[smoke] login admin"
+  $login = Invoke-Api -Method "POST" -Path "/auth/login" -Body @{ email = "admin@example.com"; password = "password123" }
+  $token = $login.accessToken
+  if ([string]::IsNullOrWhiteSpace($token)) { throw "Missing accessToken" }
 
   $headers = @{ Authorization = "Bearer $token" }
 
-  # List groups
-  $groups = Invoke-RestMethod -Method GET -Uri "$base/groups" -Headers $headers
-  Write-Output "[smoke] groups_count=$($groups.data.Count)"
+  Write-Host "[smoke] create group"
+  $group = Invoke-Api -Method "POST" -Path "/groups" -Headers $headers -Body @{ title = "Smoke group $(Get-Date -Format s)"; isPublic = $true }
+  $groupId = $group.id
+  Write-Host "[smoke] groupId: $groupId"
 
-  # Create + patch + delete group
-  $createBody = @{ title = "Smoke Group $(Get-Date -Format 'HHmmss')"; isPublic = $true } | ConvertTo-Json
-  $created = Invoke-RestMethod -Method POST -Uri "$base/groups" -Headers $headers -ContentType 'application/json' -Body $createBody
-  $gid = $created.data.id
-  if (-not $gid) { throw 'Create group did not return id' }
-  Write-Output "[smoke] created_group=$gid"
+  Write-Host "[smoke] patch group"
+  Invoke-Api -Method "PATCH" -Path "/groups/$groupId" -Headers $headers -Body @{ title = "Smoke group updated" } | Out-Null
 
-  $patchBody = @{ description = 'smoke updated' } | ConvertTo-Json
-  $patched = Invoke-RestMethod -Method PATCH -Uri "$base/groups/$gid" -Headers $headers -ContentType 'application/json' -Body $patchBody
-  Write-Output "[smoke] patched_desc=$($patched.data.description)"
+  Write-Host "[smoke] create topic"
+  Invoke-Api -Method "POST" -Path "/groups/$groupId/topics" -Headers $headers -Body @{ title = "Topic 1" } | Out-Null
 
-  try {
-    Invoke-WebRequest -Method DELETE -Uri "$base/groups/$gid" -Headers $headers | Out-Null
-  } catch {
-    if (!($_.Exception.Response -and $_.Exception.Response.StatusCode.value__ -eq 204)) { throw }
-  }
-  Write-Output "[smoke] deleted_group=ok"
+  Write-Host "[smoke] create meeting"
+  $startsAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+  Invoke-Api -Method "POST" -Path "/groups/$groupId/meetings" -Headers $headers -Body @{ startsAt = $startsAt; durationMinutes = 60 } | Out-Null
 
-  Write-Output "[smoke] OK"
-  exit 0
-}
-finally {
-  if ($proc -and !$proc.HasExited) {
-    Stop-Process -Id $proc.Id -Force
-    Write-Output "[smoke] server_stopped=ok"
+  Write-Host "[smoke] calendar export (.ics)"
+  $icsRes = Invoke-WebRequest -Method "GET" -Uri "$ApiBase/groups/$groupId/calendar.ics" -Headers $headers -TimeoutSec 20
+  if ($icsRes.StatusCode -ne 200) { throw "ICS returned $($icsRes.StatusCode)" }
+  $ct = $icsRes.Headers["Content-Type"]
+  if ($ct -notmatch "text/calendar") { throw "ICS Content-Type is $ct" }
+  if ($icsRes.Content -notmatch "BEGIN:VCALENDAR") { throw "ICS content missing BEGIN:VCALENDAR" }
+
+  Write-Host "[smoke] create material"
+  Invoke-Api -Method "POST" -Path "/groups/$groupId/materials" -Headers $headers -Body @{ title = "Material"; type = "link"; url = "https://example.com" } | Out-Null
+
+  Write-Host "[smoke] create task"
+  Invoke-Api -Method "POST" -Path "/groups/$groupId/tasks" -Headers $headers -Body @{ title = "Task 1" } | Out-Null
+
+  Write-Host "[smoke] delete group"
+  Invoke-Api -Method "DELETE" -Path "/groups/$groupId" -Headers $headers | Out-Null
+
+  Write-Host "[smoke] OK"
+} finally {
+  if ($serverStartedHere -and $null -ne $serverProc) {
+    try {
+      Stop-Process -Id $serverProc.Id -Force
+      Write-Host "[smoke] stopped api process $($serverProc.Id)"
+    } catch {
+      # ignore
+    }
   }
 }

@@ -86,6 +86,9 @@ model Topic {
   description String?
   order       Int?
 
+  isDone      Boolean    @default(false) @map("is_done")
+  doneAt      DateTime?  @map("done_at")
+
   groupId     String     @map("group_id")
   group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 

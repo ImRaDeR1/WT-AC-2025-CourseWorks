@@ -1,10 +1,10 @@
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
-  text-rendering: optimizelegibility;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   accent-color: Highlight;
@@ -50,8 +50,6 @@ p {
   margin: 0;
 }
 
-/* ===== Buttons ===== */
-
 button {
   border-radius: 10px;
   border: 1px solid GrayText;
@@ -64,20 +62,6 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-button:focus-visible {
-  outline: 2px solid Highlight;
-  outline-offset: 2px;
-}
-
-.tabs button {
-  padding: 0.45rem 0.75rem;
-}
-
 button:not(:disabled):hover {
   filter: brightness(0.98);
 }
@@ -88,7 +72,18 @@ button.primary {
   border-color: Highlight;
 }
 
-/* ===== Inputs ===== */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
 
 input,
 textarea,
@@ -103,21 +98,13 @@ select {
   color: FieldText;
 }
 
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid Highlight;
-  outline-offset: 2px;
-}
-
 label {
   display: grid;
   gap: 6px;
   font-weight: 600;
 }
 
-/* ===== Layout helpers ===== */
-
+/* Layout helpers */
 .container {
   max-width: 1000px;
   margin: 30px auto;
@@ -162,8 +149,6 @@ label {
   opacity: 0.75;
 }
 
-/* ===== Tabs ===== */
-
 .tabs {
   display: flex;
   gap: 8px;
@@ -171,13 +156,15 @@ label {
   flex-wrap: wrap;
 }
 
+.tabs button {
+  padding: 0.45rem 0.75rem;
+}
+
 .tabs button[aria-pressed="true"] {
   background: Highlight;
   color: HighlightText;
   border-color: Highlight;
 }
-
-/* ===== Lists ===== */
 
 .list {
   list-style: none;
@@ -193,8 +180,6 @@ label {
   padding: 12px;
   background: Canvas;
 }
-
-/* ===== Misc ===== */
 
 .pill {
   display: inline-flex;

@@ -1,13 +1,24 @@
+-- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('admin', 'user');
+
+-- CreateEnum
+CREATE TYPE "MembershipRole" AS ENUM ('owner', 'member');
+
+-- CreateEnum
+CREATE TYPE "MaterialType" AS ENUM ('link', 'file', 'note');
+
+-- CreateEnum
+CREATE TYPE "TaskStatus" AS ENUM ('todo', 'in_progress', 'done');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "username" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
-    "role" VARCHAR(16) NOT NULL DEFAULT 'user',
+    "role" "UserRole" NOT NULL DEFAULT 'user',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "users_role_check" CHECK ("role" IN ('admin', 'user')),
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
@@ -26,12 +37,11 @@ CREATE TABLE "study_groups" (
 -- CreateTable
 CREATE TABLE "memberships" (
     "id" TEXT NOT NULL,
-    "role" VARCHAR(16) NOT NULL DEFAULT 'member',
+    "role" "MembershipRole" NOT NULL DEFAULT 'member',
     "joined_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "group_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
 
-    CONSTRAINT "memberships_role_check" CHECK ("role" IN ('owner', 'member')),
     CONSTRAINT "memberships_pkey" PRIMARY KEY ("id")
 );
 
@@ -64,7 +74,7 @@ CREATE TABLE "meetings" (
 CREATE TABLE "materials" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "type" VARCHAR(16) NOT NULL,
+    "type" "MaterialType" NOT NULL,
     "url" TEXT,
     "content" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -72,7 +82,6 @@ CREATE TABLE "materials" (
     "topic_id" TEXT,
     "created_by" TEXT NOT NULL,
 
-    CONSTRAINT "materials_type_check" CHECK ("type" IN ('link', 'file', 'note')),
     CONSTRAINT "materials_pkey" PRIMARY KEY ("id")
 );
 
@@ -82,14 +91,13 @@ CREATE TABLE "tasks" (
     "title" TEXT NOT NULL,
     "description" TEXT,
     "due_at" TIMESTAMP(3),
-    "status" VARCHAR(16) NOT NULL DEFAULT 'todo',
+    "status" "TaskStatus" NOT NULL DEFAULT 'todo',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "group_id" TEXT NOT NULL,
     "topic_id" TEXT,
     "created_by" TEXT NOT NULL,
     "assignee_id" TEXT,
 
-    CONSTRAINT "tasks_status_check" CHECK ("status" IN ('todo', 'in_progress', 'done')),
     CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
 );
 

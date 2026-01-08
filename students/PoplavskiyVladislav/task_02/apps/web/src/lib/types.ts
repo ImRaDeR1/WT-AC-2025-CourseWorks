@@ -8,7 +8,14 @@ export type Group = {
   myRole?: "owner" | "member" | null;
 };
 
-export type Topic = { id: string; title: string; description: string | null; order: number | null };
+export type Topic = {
+  id: string;
+  title: string;
+  description: string | null;
+  order: number | null;
+  isDone: boolean;
+  doneAt: string | null;
+};
 
 export type Meeting = {
   id: string;
